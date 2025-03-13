@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+
+# Exit if any command fails
+set -euo pipefail
+
+BUILD_DIR=$1
+CACHE_DIR=$2
+ENV_DIR=$3
+
+echo "-----> Laravel Buildpack"
+
+cd "${BUILD_DIR}"
+
+echo "-----> Installing Composer"
+curl -s https://getcomposer.org/installer | php -- --install-dir="$BUILD_DIR"
+mv "$BUILD_DIR"/composer.phar "$BUILD_DIR"/composer
+
+echo "-----> Installing PHP dependencies"
+php composer install --no-dev --optimize-autoloader --no-interaction
+
+echo "-----> Installing Node.js and npm"
+curl -s https://nodejs.org/dist/v22.7.0/node-v22.7.0-linux-x64.tar.gz | tar xz -C "$BUILD_DIR"
+export PATH=$BUILD_DIR/node-v22.7.0-linux-x64/bin:$PATH
+
+echo "-----> Installing pnpm"
+npm install -g pnpm
+
+echo "-----> Installing npm dependencies"
+pnpm install
+
+# Build assets
+echo "-----> Building assets"
+pnpm build
+
+# Create storage directory structure
+echo "-----> Setting up storage directory"
+mkdir -p "$BUILD_DIR"/storage/framework/{sessions,views,cache}
+chmod -R 777 "$BUILD_DIR"/storage
+
+echo "-----> Optimizing Laravel"
+php artisan optimize
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+
+echo "-----> Buildpack compilation completed"

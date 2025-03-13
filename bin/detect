@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+set -e
+
+if [[ -f "$1/composer.json" && -f "$1/bootstrap/app.php" && -f "$1/artisan" && -f "$1/public/index.php" ]]; then
+  echo "Laravel PHP Framework" && exit 0
+else
+  exit 1
+fi
